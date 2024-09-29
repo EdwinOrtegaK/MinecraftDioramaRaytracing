@@ -5,17 +5,23 @@ use crate::color::Color;
 pub struct Material {
     pub diffuse: Color,  // Color difuso del material
     pub specular: f32,   // Coeficiente especular (controla la dureza del reflejo especular)
+    pub albedo: [f32; 3], // Albedo: difuso y especular
 }
 
 impl Material {
-    pub fn new(diffuse: Color, specular: f32) -> Self {
-        Material { diffuse, specular }
+    pub fn new(diffuse: Color, specular: f32, albedo: [f32; 3]) -> Self {
+        Material {
+            diffuse,
+            specular,
+            albedo,
+        }
     }
 
     pub fn black() -> Self {
         Material {
             diffuse: Color::new(0, 0, 0),
             specular: 0.0,
+            albedo: [0.0, 0.0, 0.0],
         }
     }
 }

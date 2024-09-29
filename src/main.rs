@@ -34,15 +34,12 @@ fn main() {
         1.0,                          // Intensidad de la luz
     );
 
-    // Definimos la dirección de la luz
-    let light_dir = Vector3::new(-1.0, -1.0, -1.0).normalize();  // Luz direccional
-
-    // Definimos los materiales
-    let blue = Material::new(Color::new(0, 0, 255), 32.0);  // Color azul con especularidad
-    let white = Material::new(Color::new(255, 255, 255), 32.0);  // Color blanco con especularidad
-    let black = Material::new(Color::new(0, 0, 0), 32.0);  // Color negro con especularidad
-    let pink = Material::new(Color::new(255, 105, 180), 32.0);   // Color rosado con especularidad
-    let dark_pink = Material::new(Color::new(199, 21, 133), 32.0); // Color rosado oscuro con especularidad
+    // Definimos los materiales con albedo y reflectividad
+    let blue = Material::new(Color::new(0, 0, 255), 32.0, [0.9, 0.1, 0.1]);  // Azul, mayormente difuso, 10% reflejado
+    let white = Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1]);  // Blanco, algo reflejado
+    let black = Material::new(Color::new(0, 0, 0), 32.0, [0.9, 0.1, 0.0]);  // Negro, no refleja
+    let pink = Material::new(Color::new(255, 105, 180), 32.0, [0.8, 0.2, 0.1]);   // Rosado, algo reflejado
+    let dark_pink = Material::new(Color::new(199, 21, 133), 32.0, [0.8, 0.2, 0.1]); // Rosado oscuro, algo reflejado
 
     // Creamos la esfera azul que será la cabeza de Popplio
     // Añadimos las esferas blancas para los ojos, negras para las pupilas, y azules para las orejas

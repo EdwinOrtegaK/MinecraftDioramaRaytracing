@@ -3,6 +3,7 @@ use crate::framebuffer::Framebuffer;
 use crate::ray_intersect::{Intersect, RayIntersect, Material};
 use crate::camera::Camera;
 use crate::light::Light;
+use crate::color::Color;
 
 pub struct Sphere {
     pub center: Vector3<f32>,
@@ -31,10 +32,6 @@ impl RayIntersect for Sphere {
     }
 }
 
-pub fn reflect(incident: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
-    incident - 2.0 * incident.dot(normal) * normal
-}
-
 pub fn render(framebuffer: &mut Framebuffer, objects: &[Sphere], camera: &Camera, light: &Light) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
@@ -48,15 +45,45 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Sphere], camera: &Camera
 
             let ray_direction = camera.basis_change(&Vector3::new(screen_x, screen_y, -1.0).normalize());
 
-            let pixel_color = cast_ray(&camera.eye, &ray_direction, objects, light);
+            let pixel_color = cast_ray(&camera.eye, &ray_direction, objects, light, 0);  // Pasamos 0 como profundidad inicial
 
-            framebuffer.set_current_color(pixel_color);
+            framebuffer.set_current_color(pixel_color.to_u32());
             framebuffer.point(x, y);
         }
     }
 }
 
-pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects: &[Sphere], light: &Light) -> u32 {
+fn cast_shadow(
+    intersect: &Intersect,
+    light: &Light,
+    objects: &[Sphere],
+) -> f32 {
+    let light_dir = (light.position - intersect.point).normalize();
+    
+    // Incrementamos el desplazamiento para evitar el acné de sombra
+    let shadow_ray_origin = intersect.point + intersect.normal * 1e-2;
+    let mut shadow_intensity = 0.0;
+
+    for object in objects {
+        let shadow_intersect = object.ray_intersect(&shadow_ray_origin, &light_dir);
+        if shadow_intersect.is_intersecting {
+            let distance_to_light = (light.position - intersect.point).magnitude();
+            let shadow_distance = (shadow_intersect.point - shadow_ray_origin).magnitude();
+            
+            // Ajuste para suavizar sombras en función de la distancia
+            shadow_intensity = (1.0 - (shadow_distance / distance_to_light)).max(0.0);
+            break;
+        }
+    }
+
+    shadow_intensity
+}
+
+pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects: &[Sphere], light: &Light, depth: u32) -> Color {
+    if depth > 3 {
+        return Color::new(0, 0, 0);  // Color de fondo si alcanzamos la profundidad máxima de reflexión
+    }
+
     let mut closest_intersect = Intersect::empty();
     let mut zbuffer = f32::INFINITY;
 
@@ -71,34 +98,39 @@ pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects
 
     // Si no hay intersección, devolvemos el color de fondo
     if !closest_intersect.is_intersecting {
-        return 0x040C24;  // Color de fondo (negro)
+        return Color::new(4, 12, 36);  // Color de fondo
     }
 
     // Calcular la dirección hacia la luz
     let light_dir = (light.position - closest_intersect.point).normalize();
     let view_dir = (ray_origin - closest_intersect.point).normalize();
-
-    // Calcular la reflexión de la luz sobre la superficie
     let reflect_dir = reflect(&-light_dir, &closest_intersect.normal);
 
-    // Iluminación difusa (Ley del coseno de Lambert)
-    let diffuse_intensity = light_dir.dot(&closest_intersect.normal).max(0.0);
-    let diffuse_color = closest_intersect.material.diffuse;
-    let diffuse_r = ((diffuse_color.r as f32) * diffuse_intensity * light.intensity).min(255.0);
-    let diffuse_g = ((diffuse_color.g as f32) * diffuse_intensity * light.intensity).min(255.0);
-    let diffuse_b = ((diffuse_color.b as f32) * diffuse_intensity * light.intensity).min(255.0);
+    // Calcular sombras
+    let shadow_intensity = cast_shadow(&closest_intersect, light, objects);
+    let light_intensity = light.intensity * (1.0 - shadow_intensity);
+
+    // Iluminación difusa
+    let diffuse_intensity = light_dir.dot(&closest_intersect.normal).max(0.0).min(1.0);
+    let diffuse = closest_intersect.material.diffuse.scale(closest_intersect.material.albedo[0] * diffuse_intensity * light_intensity);
 
     // Iluminación especular
     let specular_intensity = view_dir.dot(&reflect_dir).max(0.0).powf(closest_intersect.material.specular);
-    let specular_r = ((light.color.r as f32) * specular_intensity * light.intensity).min(255.0);
-    let specular_g = ((light.color.g as f32) * specular_intensity * light.intensity).min(255.0);
-    let specular_b = ((light.color.b as f32) * specular_intensity * light.intensity).min(255.0);
+    let specular = light.color.scale(closest_intersect.material.albedo[1] * specular_intensity * light_intensity);
 
-    // Combinamos los componentes difusos y especulares
-    let r = (diffuse_r + specular_r).min(255.0) as u32;
-    let g = (diffuse_g + specular_g).min(255.0) as u32;
-    let b = (diffuse_b + specular_b).min(255.0) as u32;
+    // Reflexiones
+    let mut reflect_color = Color::new(0, 0, 0);
+    let reflectivity = closest_intersect.material.albedo[2];
+    if reflectivity > 0.0 {
+        let reflect_dir = reflect(&-ray_direction, &closest_intersect.normal).normalize();
+        let reflect_origin = closest_intersect.point + closest_intersect.normal * 1e-3;
+        reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1);
+    }
 
-    // Devolvemos el color calculado como un valor RGB en formato u32
-    (r << 16) | (g << 8) | b
+    // Combinamos los componentes difusos, especulares y reflejados
+    (diffuse + specular).scale(1.0 - reflectivity) + reflect_color.scale(reflectivity)
+}
+
+fn reflect(incident: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
+    incident - 2.0 * incident.dot(normal) * normal
 }
