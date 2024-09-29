@@ -21,12 +21,18 @@ impl RayIntersect for Sphere {
         let discriminant = b * b - 4.0 * a * c;
         if discriminant > 0.0 {
             let distance = (-b - discriminant.sqrt()) / (2.0 * a);
-            let point = ray_origin + ray_direction * distance;
-            let normal = (point - self.center).normalize();
-            return Intersect::new(point, normal, distance, self.material);
+            if distance > 0.0 {
+                let point = ray_origin + ray_direction * distance;
+                let normal = (point - self.center).normalize();
+                return Intersect::new(point, normal, distance, self.material);
+            }
         }
         Intersect::empty()
     }
+}
+
+pub fn reflect(incident: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
+    incident - 2.0 * incident.dot(normal) * normal
 }
 
 pub fn render(framebuffer: &mut Framebuffer, objects: &[Sphere], camera: &Camera, light: &Light) {
@@ -54,6 +60,7 @@ pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects
     let mut closest_intersect = Intersect::empty();
     let mut zbuffer = f32::INFINITY;
 
+    // Buscamos la intersección más cercana con los objetos
     for object in objects {
         let intersect = object.ray_intersect(ray_origin, ray_direction);
         if intersect.is_intersecting && intersect.distance < zbuffer {
@@ -62,22 +69,36 @@ pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects
         }
     }
 
+    // Si no hay intersección, devolvemos el color de fondo
     if !closest_intersect.is_intersecting {
         return 0x040C24;  // Color de fondo (negro)
     }
 
     // Calcular la dirección hacia la luz
     let light_dir = (light.position - closest_intersect.point).normalize();
+    let view_dir = (ray_origin - closest_intersect.point).normalize();
 
-    // Calcular la iluminación difusa (ley del coseno de Lambert)
+    // Calcular la reflexión de la luz sobre la superficie
+    let reflect_dir = reflect(&-light_dir, &closest_intersect.normal);
+
+    // Iluminación difusa (Ley del coseno de Lambert)
     let diffuse_intensity = light_dir.dot(&closest_intersect.normal).max(0.0);
-    let final_intensity = light.intensity * diffuse_intensity;
+    let diffuse_color = closest_intersect.material.diffuse;
+    let diffuse_r = ((diffuse_color.r as f32) * diffuse_intensity * light.intensity).min(255.0);
+    let diffuse_g = ((diffuse_color.g as f32) * diffuse_intensity * light.intensity).min(255.0);
+    let diffuse_b = ((diffuse_color.b as f32) * diffuse_intensity * light.intensity).min(255.0);
 
-    // Modificar el color del material según la intensidad de la luz y el color de la luz
-    let material_color = closest_intersect.material.diffuse;
-    let r = ((material_color >> 16) & 0xFF) as f32 * (light.color.r as f32 / 255.0) * final_intensity;
-    let g = ((material_color >> 8) & 0xFF) as f32 * (light.color.g as f32 / 255.0) * final_intensity;
-    let b = (material_color & 0xFF) as f32 * (light.color.b as f32 / 255.0) * final_intensity;
+    // Iluminación especular
+    let specular_intensity = view_dir.dot(&reflect_dir).max(0.0).powf(closest_intersect.material.specular);
+    let specular_r = ((light.color.r as f32) * specular_intensity * light.intensity).min(255.0);
+    let specular_g = ((light.color.g as f32) * specular_intensity * light.intensity).min(255.0);
+    let specular_b = ((light.color.b as f32) * specular_intensity * light.intensity).min(255.0);
 
-    ((r.min(255.0) as u32) << 16) | ((g.min(255.0) as u32) << 8) | (b.min(255.0) as u32)
+    // Combinamos los componentes difusos y especulares
+    let r = (diffuse_r + specular_r).min(255.0) as u32;
+    let g = (diffuse_g + specular_g).min(255.0) as u32;
+    let b = (diffuse_b + specular_b).min(255.0) as u32;
+
+    // Devolvemos el color calculado como un valor RGB en formato u32
+    (r << 16) | (g << 8) | b
 }
