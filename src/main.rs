@@ -1,15 +1,41 @@
 mod framebuffer;
 mod raytracer;
 mod ray_intersect;
+mod camera;
+mod light;
+mod color;
 
 use framebuffer::Framebuffer;
 use nalgebra::Vector3;
 use ray_intersect::Material;
+use camera::Camera;
+use light::Light;
+use color::Color;
+use std::f32::consts::PI;
 
 fn main() {
+    // Inicializamos el framebuffer
     let mut framebuffer = Framebuffer::new(800, 600);
     framebuffer.set_background_color(0x000000); // Fondo negro
     framebuffer.clear();
+
+    // Definimos la cámara
+    let mut camera = Camera::new(
+        Vector3::new(0.0, 0.0, 5.0),  // Posición de la cámara
+        Vector3::new(0.0, 0.0, 0.0),  // Punto que la cámara está mirando (centro de la escena)
+        Vector3::new(0.0, 1.0, 0.0),  // Vector "up"
+    );
+    camera.orbit(PI / 10.0, PI / 20.0);  // Rotamos la cámara
+
+    // Definimos la luz
+    let light = Light::new(
+        Vector3::new(5.0, 5.0, 5.0),  // Posición de la luz
+        Color::new(255, 255, 255),    // Color de la luz (blanco)
+        1.0,                          // Intensidad de la luz
+    );
+
+    // Definimos la dirección de la luz
+    let light_dir = Vector3::new(-1.0, -1.0, -1.0).normalize();  // Luz direccional
 
     // Definimos los materiales
     let blue = Material { diffuse: 0x0000FF };  // Color azul
@@ -131,8 +157,8 @@ fn main() {
         },
     ];
 
-    // Renderizamos la escena
-    raytracer::render(&mut framebuffer, &objects);
+    // Renderizamos la escena, pasando la cámara y la luz como parámetros
+    raytracer::render(&mut framebuffer, &objects, &camera, &light);
 
     // Mostrar el framebuffer en una ventana emergente
     framebuffer.display();

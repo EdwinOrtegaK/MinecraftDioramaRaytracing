@@ -45,7 +45,7 @@ impl Framebuffer {
 
     pub fn display(&self) {
         let mut window = Window::new(
-            "Raytracer Popplio",
+            "Raytracer",
             self.width,
             self.height,
             WindowOptions::default(),
