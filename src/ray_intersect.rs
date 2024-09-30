@@ -1,19 +1,33 @@
 use nalgebra::Vector3;
 use crate::color::Color;
+use crate::texture::Texture;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Material {
-    pub diffuse: Color,  // Color difuso del material
-    pub specular: f32,   // Coeficiente especular (controla la dureza del reflejo especular)
-    pub albedo: [f32; 3], // Albedo: difuso y especular
+    pub diffuse: Color,
+    pub specular: f32,
+    pub albedo: [f32; 4],
+    pub refractive_index: f32,
+    pub has_texture: bool,    
+    pub texture: Option<Texture>,
 }
 
 impl Material {
-    pub fn new(diffuse: Color, specular: f32, albedo: [f32; 3]) -> Self {
+    pub fn new(
+        diffuse: Color, 
+        specular: f32, 
+        albedo: [f32; 4], 
+        refractive_index: f32, 
+        has_texture: bool, 
+        texture: Option<Texture>  // Pasamos la textura opcional
+    ) -> Self {
         Material {
             diffuse,
             specular,
             albedo,
+            refractive_index,
+            has_texture,
+            texture,
         }
     }
 
@@ -21,28 +35,45 @@ impl Material {
         Material {
             diffuse: Color::new(0, 0, 0),
             specular: 0.0,
-            albedo: [0.0, 0.0, 0.0],
+            albedo: [0.0, 0.0, 0.0, 0.0],
+            refractive_index: 1.0,
+            has_texture: false,  // Sin textura
+            texture: None,       // No hay textura
+        }
+    }
+
+    // Función para obtener el color difuso, ya sea de una textura o del color base del material
+    pub fn get_diffuse_color(&self, u: f32, v: f32) -> Color {
+        if self.has_texture {
+            // Obtener el color de la textura usando las coordenadas UV
+            self.texture.as_ref().unwrap().get_color(u, v)
+        } else {
+            // Retornar el color difuso base
+            self.diffuse
         }
     }
 }
 
-#[derive(Debug, Clone, Copy)]
 pub struct Intersect {
     pub point: Vector3<f32>,  // Punto de intersección
     pub normal: Vector3<f32>, // Normal en el punto de intersección
     pub distance: f32,        // Distancia desde el origen del rayo
     pub is_intersecting: bool, // Indica si hay una intersección
     pub material: Material,   // Material del objeto en el punto de intersección
+    pub u: f32,               // Coordenada U para texturas
+    pub v: f32,               // Coordenada V para texturas
 }
 
 impl Intersect {
-    pub fn new(point: Vector3<f32>, normal: Vector3<f32>, distance: f32, material: Material) -> Self {
+    pub fn new(point: Vector3<f32>, normal: Vector3<f32>, distance: f32, material: Material, u: f32, v: f32) -> Self {
         Intersect {
             point,
             normal,
             distance,
             is_intersecting: true,
             material,
+            u,
+            v,
         }
     }
 
@@ -53,6 +84,8 @@ impl Intersect {
             distance: 0.0,
             is_intersecting: false,
             material: Material::black(),
+            u: 0.0,
+            v: 0.0,
         }
     }
 }
@@ -65,6 +98,20 @@ pub struct Sphere {
     pub center: Vector3<f32>,
     pub radius: f32,
     pub material: Material,
+}
+
+impl Sphere {
+    // Función para calcular las coordenadas UV en una esfera
+    fn get_uv(&self, point: &Vector3<f32>) -> (f32, f32) {
+        let p = (point - self.center).normalize();  // Vector desde el centro de la esfera al punto de intersección
+        let theta = p.z.atan2(p.x);  // Ángulo theta
+        let phi = p.y.asin();        // Ángulo phi
+
+        let u = 0.5 + theta / (2.0 * std::f32::consts::PI);
+        let v = 0.5 - phi / std::f32::consts::PI;
+
+        (u, v)
+    }
 }
 
 impl RayIntersect for Sphere {
@@ -81,7 +128,9 @@ impl RayIntersect for Sphere {
             if distance > 0.0 {
                 let point = ray_origin + ray_direction * distance;
                 let normal = (point - self.center).normalize();
-                return Intersect::new(point, normal, distance, self.material);
+                let (u, v) = self.get_uv(&point);
+
+                return Intersect::new(point, normal, distance, self.material.clone(), u, v);
             }
         }
         Intersect::empty()

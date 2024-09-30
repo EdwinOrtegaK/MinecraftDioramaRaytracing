@@ -1,36 +1,9 @@
 use nalgebra::Vector3;
 use crate::framebuffer::Framebuffer;
-use crate::ray_intersect::{Intersect, RayIntersect, Material};
+use crate::ray_intersect::{Intersect, RayIntersect, Material, Sphere};
 use crate::camera::Camera;
 use crate::light::Light;
 use crate::color::Color;
-
-pub struct Sphere {
-    pub center: Vector3<f32>,
-    pub radius: f32,
-    pub material: Material,
-}
-
-impl RayIntersect for Sphere {
-    fn ray_intersect(&self, ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>) -> Intersect {
-        let oc = ray_origin - self.center;
-
-        let a = ray_direction.dot(ray_direction);
-        let b = 2.0 * oc.dot(ray_direction);
-        let c = oc.dot(&oc) - self.radius * self.radius;
-
-        let discriminant = b * b - 4.0 * a * c;
-        if discriminant > 0.0 {
-            let distance = (-b - discriminant.sqrt()) / (2.0 * a);
-            if distance > 0.0 {
-                let point = ray_origin + ray_direction * distance;
-                let normal = (point - self.center).normalize();
-                return Intersect::new(point, normal, distance, self.material);
-            }
-        }
-        Intersect::empty()
-    }
-}
 
 pub fn render(framebuffer: &mut Framebuffer, objects: &[Sphere], camera: &Camera, light: &Light) {
     let width = framebuffer.width as f32;
@@ -79,15 +52,48 @@ fn cast_shadow(
     shadow_intensity
 }
 
-pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects: &[Sphere], light: &Light, depth: u32) -> Color {
+fn refract(incident: &Vector3<f32>, normal: &Vector3<f32>, eta_t: f32) -> Vector3<f32> {
+    let cosi = -incident.dot(normal).max(-1.0).min(1.0);
+
+    let (n_cosi, eta, n_normal);
+
+    if cosi < 0.0 {
+        // El rayo está entrando en el objeto
+        n_cosi = -cosi;
+        eta = 1.0 / eta_t;
+        n_normal = -normal;
+    } else {
+        // El rayo está saliendo del objeto
+        n_cosi = cosi;
+        eta = eta_t;
+        n_normal = *normal;
+    }
+
+    let k = 1.0 - eta * eta * (1.0 - n_cosi * n_cosi);
+
+    if k < 0.0 {
+        // Reflexión total interna
+        reflect(incident, &n_normal)
+    } else {
+        eta * incident + (eta * n_cosi - k.sqrt()) * n_normal
+    }
+}
+
+pub fn cast_ray(
+    ray_origin: &Vector3<f32>,
+    ray_direction: &Vector3<f32>,
+    objects: &[Sphere],
+    light: &Light,
+    depth: u32,
+) -> Color {
     if depth > 3 {
-        return Color::new(0, 0, 0);  // Color de fondo si alcanzamos la profundidad máxima de reflexión
+        return Color::new(0, 0, 0);  // Color de fondo si alcanzamos la profundidad máxima
     }
 
     let mut closest_intersect = Intersect::empty();
     let mut zbuffer = f32::INFINITY;
 
-    // Buscamos la intersección más cercana con los objetos
+    // Encontrar la intersección más cercana
     for object in objects {
         let intersect = object.ray_intersect(ray_origin, ray_direction);
         if intersect.is_intersecting && intersect.distance < zbuffer {
@@ -96,39 +102,52 @@ pub fn cast_ray(ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>, objects
         }
     }
 
-    // Si no hay intersección, devolvemos el color de fondo
     if !closest_intersect.is_intersecting {
         return Color::new(4, 12, 36);  // Color de fondo
     }
 
-    // Calcular la dirección hacia la luz
+    // Obtener el color difuso del material usando las coordenadas UV
+    let diffuse_color = closest_intersect.material.get_diffuse_color(closest_intersect.u, closest_intersect.v);
+
+    // Calcular la dirección hacia la luz y los componentes de iluminación
     let light_dir = (light.position - closest_intersect.point).normalize();
     let view_dir = (ray_origin - closest_intersect.point).normalize();
     let reflect_dir = reflect(&-light_dir, &closest_intersect.normal);
 
-    // Calcular sombras
     let shadow_intensity = cast_shadow(&closest_intersect, light, objects);
     let light_intensity = light.intensity * (1.0 - shadow_intensity);
 
-    // Iluminación difusa
     let diffuse_intensity = light_dir.dot(&closest_intersect.normal).max(0.0).min(1.0);
-    let diffuse = closest_intersect.material.diffuse.scale(closest_intersect.material.albedo[0] * diffuse_intensity * light_intensity);
+    
+    // En lugar de usar closest_intersect.material.diffuse, usamos el color de la textura
+    let diffuse = diffuse_color.scale(closest_intersect.material.albedo[0] * diffuse_intensity * light_intensity);
 
-    // Iluminación especular
     let specular_intensity = view_dir.dot(&reflect_dir).max(0.0).powf(closest_intersect.material.specular);
     let specular = light.color.scale(closest_intersect.material.albedo[1] * specular_intensity * light_intensity);
 
-    // Reflexiones
+    // Cálculo de reflexiones
     let mut reflect_color = Color::new(0, 0, 0);
     let reflectivity = closest_intersect.material.albedo[2];
     if reflectivity > 0.0 {
         let reflect_dir = reflect(&-ray_direction, &closest_intersect.normal).normalize();
-        let reflect_origin = closest_intersect.point + closest_intersect.normal * 1e-3;
+        let reflect_origin = closest_intersect.point + closest_intersect.normal * 1e-3;  // Offset para evitar acné
         reflect_color = cast_ray(&reflect_origin, &reflect_dir, objects, light, depth + 1);
     }
 
-    // Combinamos los componentes difusos, especulares y reflejados
-    (diffuse + specular).scale(1.0 - reflectivity) + reflect_color.scale(reflectivity)
+    // Cálculo de refracciones
+    let mut refract_color = Color::new(0, 0, 0);
+    let transparency = closest_intersect.material.albedo[3];
+    if transparency > 0.0 {
+        let refract_dir = refract(&ray_direction, &closest_intersect.normal, closest_intersect.material.refractive_index).normalize();
+        let refract_origin = closest_intersect.point - closest_intersect.normal * 1e-3;  // Offset para evitar acné
+        refract_color = cast_ray(&refract_origin, &refract_dir, objects, light, depth + 1);
+    }
+
+    // Combinar los componentes difusos, especulares, reflejados y refractados
+    (diffuse + specular)
+        .scale(1.0 - reflectivity - transparency)
+        + reflect_color.scale(reflectivity)
+        + refract_color.scale(transparency)
 }
 
 fn reflect(incident: &Vector3<f32>, normal: &Vector3<f32>) -> Vector3<f32> {
