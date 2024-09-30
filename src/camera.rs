@@ -40,4 +40,14 @@ impl Camera {
             radius * new_yaw.sin() * new_pitch.cos(),
         );
     }
+
+    pub fn zoom_in(&mut self, amount: f32) {
+        let direction = (self.center - self.eye).normalize();
+        self.eye += direction * amount;
+    }
+
+    pub fn zoom_out(&mut self, amount: f32) {
+        let direction = (self.eye - self.center).normalize();
+        self.eye += direction * amount;
+    }
 }

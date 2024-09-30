@@ -8,6 +8,17 @@ pub struct Texture {
     pub height: usize,
 }
 
+impl Color {
+    pub fn r(&self) -> u8 {
+        self.r
+    }
+    pub fn g(&self) -> u8 {
+        self.g
+    }
+    pub fn b(&self) -> u8 {
+        self.b
+    }
+}
 
 impl Texture {
     pub fn load_from_file(path: &str) -> Self {
