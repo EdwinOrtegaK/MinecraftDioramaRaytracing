@@ -39,9 +39,24 @@ impl Texture {
         }
     }
 
+    // Método para obtener el ancho de la textura
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    // Método para obtener la altura de la textura
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    // Método para obtener el color de un píxel en una posición (x, y)
+    pub fn get_pixel(&self, x: usize, y: usize) -> Color {
+        self.data[y * self.width + x]
+    }
+
     pub fn get_color(&self, u: f32, v: f32) -> Color {
         let x = (u * (self.width - 1) as f32) as usize;
         let y = (v * (self.height - 1) as f32) as usize;
-        self.data[y * self.width + x]
+        self.get_pixel(x, y)
     }
 }

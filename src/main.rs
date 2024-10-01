@@ -42,40 +42,46 @@ fn main() {
 
     // Definimos las texturas a utilizar
     let agua_texture = Texture::load_from_file("assets/agua.jpg");
-    let tierra_texture = Texture::load_from_file("assets/tierra2.png");
+    let tierra_texture = Texture::load_from_file("assets/tierra.png");
+    let tierra2_texture = Texture::load_from_file("assets/tierra2.png");
+    let grama_texture = Texture::load_from_file("assets/grama.png");
+    let madera_texture = Texture::load_from_file("assets/madera.jpg");
+    let hoja_texture = Texture::load_from_file("assets/hoja_arbol.jpg");
+    let piedra_texture = Texture::load_from_file("assets/piedra.webp");
+    let lava_texture = Texture::load_from_file("assets/lava.jpg");
 
     // Definimos la cámara
     let mut camera = Camera::new(
-        Vector3::new(0.0, 0.0, 5.0),  // Posición de la cámara
+        Vector3::new(0.0, 0.0, -10.0),  // Posición de la cámara
         Vector3::new(0.0, 0.0, 0.0),  // Punto que la cámara está mirando (centro de la escena)
         Vector3::new(0.0, 1.0, 0.0),  // Vector "up"
     );
 
     // Definimos la luz
     let light = Light::new(
-        Vector3::new(5.0, 5.0, 5.0),  // Posición de la luz
+        Vector3::new(3.0, 3.0, 3.0),  // Posición de la luz
         Color::new(255, 255, 255),    // Color de la luz (blanco)
-        1.0,                          // Intensidad de la luz
+        2.0,                          // Intensidad de la luz
     );
 
     // Definimos los materiales para cada cara del cubo
-    let cube_materials = [
-        Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1, 0.0], 1.0, true, Some(tierra_texture.clone())),
-        Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1, 0.0], 1.0, true, Some(tierra_texture.clone())),
-        Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1, 0.0], 1.0, true, Some(tierra_texture.clone())),
-        Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1, 0.0], 1.0, true, Some(tierra_texture.clone())),
-        Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1, 0.0], 1.0, true, Some(tierra_texture.clone())),
-        Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.1, 0.0], 1.0, true, Some(tierra_texture.clone())),
+    let grama_materials = [
+        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(grama_texture.clone())), // +X
+        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_texture.clone())), // -X
+        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // +Y
+        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // -Y
+        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // +Z
+        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // -Z
     ];
 
     // Creamos un cubo en la escena
-    let cube = Cube::new(Vector3::new(0.0, 0.0, -5.0), 2.0, cube_materials);
+    let cube = Cube::new(Vector3::new(0.0, 0.0, -5.0), 1.0, grama_materials);
 
     // Ejemplo de un material transparente (por ejemplo, vidrio)
     let glass = Material::new(Color::new(255, 255, 255), 125.0, [0.0, 0.5, 0.1, 0.8], 1.5, false, None); // Vidrio, 80% transparente, índice de refracción 1.5
     
     // Reemplazamos el vector de objetos para contener únicamente el cubo
-    let objects: Vec<Box<dyn RayIntersect>> = vec![Box::new(cube)];
+    let mut objects: Vec<Box<dyn RayIntersect>> = vec![Box::new(cube)];
 
     let mut needs_render = true;
     
@@ -115,6 +121,19 @@ fn main() {
         }
         if window.is_key_down(Key::Right) {
             camera.orbit(0.05, 0.0);     // Rotar hacia la derecha
+        }
+
+        // Animar cubos u otros objetos específicos usando downcasting
+        for object in objects.iter_mut() {
+            // Usamos downcasting dinámico para verificar si el objeto es un Cube
+            if let Some(cube) = object.as_any_mut().downcast_mut::<Cube>() {
+                // Aquí puedes animar o modificar el cubo
+                // Por ejemplo, podemos moverlo un poco en el eje Y para hacer que flote
+                // cube.center.y += 0.01; Movimiento hacia arriba
+            
+                // O puedes aplicar alguna lógica de animación más compleja
+                // cube.size *= 1.01;  // Incrementar el tamaño del cubo ligeramente
+            }
         }
 
         // Añadimos un pequeño delay para que no consuma tanto CPU

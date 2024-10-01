@@ -1,6 +1,7 @@
 use nalgebra::Vector3;
 use crate::color::Color;
 use crate::texture::Texture;
+use std::any::Any;
 
 #[derive(Debug, Clone)]
 pub struct Material {
@@ -90,8 +91,10 @@ impl Intersect {
     }
 }
 
-pub trait RayIntersect {
+pub trait RayIntersect: Any {
     fn ray_intersect(&self, ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>) -> Intersect;
+    fn get_uv(&self, point: &Vector3<f32>) -> (f32, f32);
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 pub struct Sphere {
@@ -102,7 +105,7 @@ pub struct Sphere {
 
 impl Sphere {
     // Función para calcular las coordenadas UV en una esfera
-    fn get_uv(&self, point: &Vector3<f32>) -> (f32, f32) {
+    fn get_uv(&self, point: &nalgebra_glm::Vec3) -> (f32, f32) {
         let p = (point - self.center).normalize();  // Vector desde el centro de la esfera al punto de intersección
         let theta = p.z.atan2(p.x);  // Ángulo theta
         let phi = p.y.asin();        // Ángulo phi
@@ -115,7 +118,7 @@ impl Sphere {
 }
 
 impl RayIntersect for Sphere {
-    fn ray_intersect(&self, ray_origin: &Vector3<f32>, ray_direction: &Vector3<f32>) -> Intersect {
+    fn ray_intersect(&self, ray_origin: &nalgebra_glm::Vec3, ray_direction: &nalgebra_glm::Vec3) -> Intersect {
         let oc = ray_origin - self.center;
 
         let a = ray_direction.dot(ray_direction);
@@ -134,5 +137,18 @@ impl RayIntersect for Sphere {
             }
         }
         Intersect::empty()
+    }
+
+    fn get_uv(&self, point: &Vector3<f32>) -> (f32, f32) {
+        let p = (point - self.center).normalize();
+        let theta = p.z.atan2(p.x);  // Ángulo theta
+        let phi = p.y.asin();        // Ángulo phi
+        let u = 0.5 + theta / (2.0 * std::f32::consts::PI);
+        let v = 0.5 - phi / std::f32::consts::PI;
+        (u, v)
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn Any {
+        self
     }
 }
