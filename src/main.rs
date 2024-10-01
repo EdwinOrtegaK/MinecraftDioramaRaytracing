@@ -50,7 +50,6 @@ fn main() {
         Vector3::new(0.0, 0.0, 0.0),  // Punto que la cámara está mirando (centro de la escena)
         Vector3::new(0.0, 1.0, 0.0),  // Vector "up"
     );
-    camera.orbit(PI / 10.0, PI / 20.0);  // Rotamos la cámara
 
     // Definimos la luz
     let light = Light::new(
@@ -81,7 +80,7 @@ fn main() {
     let mut needs_render = true;
     
     // Bucle principal para manejar la entrada del teclado y actualizar la cámara
-    while window.is_open() && !window.is_key_down(Key::Q) {
+    while window.is_open() && !window.is_key_down(Key::Escape) {
         // Renderizamos la escena con los nuevos parámetros de la cámara
         raytracer::render(&mut framebuffer, &objects, &camera, &light);
 
@@ -90,7 +89,7 @@ fn main() {
             .update_with_buffer(framebuffer.get_buffer(), framebuffer.width, framebuffer.height)
             .unwrap();
 
-        // Procesamos la entrada del teclado
+        // Procesamos la entrada del teclado para mover la cámara
         if window.is_key_down(Key::W) {
             camera.mover_enfrente(0.2);  // Mover cámara hacia adelante
         }
@@ -103,24 +102,19 @@ fn main() {
         if window.is_key_down(Key::D) {
             camera.mover_der(0.2);       // Mover cámara hacia la derecha
         }
-        if window.is_key_down(Key::I) {
-            camera.mover_enfrente(0.2);  // Acercar la cámara
+
+        // Procesamos la entrada del teclado para rotar la cámara
+        if window.is_key_down(Key::Up) {
+            camera.orbit(0.0, -0.05);    // Rotar hacia arriba
         }
-        if window.is_key_down(Key::K) {
-            camera.mover_atras(0.2);     // Alejar la cámara
+        if window.is_key_down(Key::Down) {
+            camera.orbit(0.0, 0.05);     // Rotar hacia abajo
         }
-
-        // Solo renderizamos cuando sea necesario (cuando la cámara se mueva)
-        if needs_render {
-            // Renderizamos la escena con los nuevos parámetros de la cámara
-            raytracer::render(&mut framebuffer, &objects, &camera, &light);
-
-            // Muestra el framebuffer en la ventana
-            window
-                .update_with_buffer(framebuffer.get_buffer(), framebuffer.width, framebuffer.height)
-                .unwrap();
-
-            needs_render = false; // Reseteamos la bandera después de renderizar
+        if window.is_key_down(Key::Left) {
+            camera.orbit(-0.05, 0.0);    // Rotar hacia la izquierda
+        }
+        if window.is_key_down(Key::Right) {
+            camera.orbit(0.05, 0.0);     // Rotar hacia la derecha
         }
 
         // Añadimos un pequeño delay para que no consuma tanto CPU
