@@ -14,27 +14,31 @@ use camera::Camera;
 use light::Light;
 use color::Color;
 use std::f32::consts::PI;
+use std::time::Duration;
+use std::io::{self, Write};
+use minifb::{Key, Window, WindowOptions};
 use std::path::Path;
 use crate::texture::Texture;
 use crate::ray_intersect::RayIntersect;
 use crate::cube::Cube;
 
-use winit::event::{Event, WindowEvent, ElementState, VirtualKeyCode};
-use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
 
 fn main() {
-    // Inicializa winit y crea una ventana
-    let event_loop = EventLoop::new();
-    let window = WindowBuilder::new()
-        .with_title("Minecraft Diorama Raytracing")
-        .build(&event_loop)
-        .unwrap();
-
     // Inicializamos el framebuffer
     let mut framebuffer = Framebuffer::new(800, 600);
     framebuffer.set_background_color(0x000000);
     framebuffer.clear();
+
+    // Inicializamos la ventana con minifb
+    let mut window = Window::new(
+        "Minecraft Diorama Raytracing",
+        800,
+        600,
+        WindowOptions::default(),
+    )
+    .unwrap_or_else(|e| {
+        panic!("{}", e);
+    });
 
     // Definimos las texturas a utilizar
     let agua_texture = Texture::load_from_file("assets/agua.jpg");
@@ -73,38 +77,53 @@ fn main() {
     
     // Reemplazamos el vector de objetos para contener únicamente el cubo
     let objects: Vec<Box<dyn RayIntersect>> = vec![Box::new(cube)];
-    
-    // Renderizamos la escena, pasando la cámara y la luz como parámetros
-    // Mostrar el framebuffer en una ventana emergente
-    event_loop.run(move |event, _, control_flow| {
-        *control_flow = ControlFlow::Wait;
 
-        match event {
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
-                WindowEvent::KeyboardInput { event, .. } => { // Actualizado a la sintaxis correcta
-                    if let Some(keycode) = event.virtual_keycode {
-                        if event.state == ElementState::Pressed {
-                            match keycode {
-                                VirtualKeyCode::Up => {
-                                    camera.zoom_in(0.2); // Acercamos la cámara
-                                }
-                                VirtualKeyCode::Down => {
-                                    camera.zoom_out(0.2); // Alejamos la cámara
-                                }
-                                _ => {}
-                            }
-                        }
-                    }
-                }
-                _ => {}
-            },
-            Event::MainEventsCleared => {
-                // Renderizamos la escena con los nuevos parámetros de la cámara
-                raytracer::render(&mut framebuffer, &objects, &camera, &light);
-                framebuffer.display();
-            }
-            _ => (),
+    let mut needs_render = true;
+    
+    // Bucle principal para manejar la entrada del teclado y actualizar la cámara
+    while window.is_open() && !window.is_key_down(Key::Q) {
+        // Renderizamos la escena con los nuevos parámetros de la cámara
+        raytracer::render(&mut framebuffer, &objects, &camera, &light);
+
+        // Muestra el framebuffer en la ventana
+        window
+            .update_with_buffer(framebuffer.get_buffer(), framebuffer.width, framebuffer.height)
+            .unwrap();
+
+        // Procesamos la entrada del teclado
+        if window.is_key_down(Key::W) {
+            camera.mover_enfrente(0.2);  // Mover cámara hacia adelante
         }
-    });
+        if window.is_key_down(Key::S) {
+            camera.mover_atras(0.2);     // Mover cámara hacia atrás
+        }
+        if window.is_key_down(Key::A) {
+            camera.mover_izq(0.2);       // Mover cámara hacia la izquierda
+        }
+        if window.is_key_down(Key::D) {
+            camera.mover_der(0.2);       // Mover cámara hacia la derecha
+        }
+        if window.is_key_down(Key::I) {
+            camera.mover_enfrente(0.2);  // Acercar la cámara
+        }
+        if window.is_key_down(Key::K) {
+            camera.mover_atras(0.2);     // Alejar la cámara
+        }
+
+        // Solo renderizamos cuando sea necesario (cuando la cámara se mueva)
+        if needs_render {
+            // Renderizamos la escena con los nuevos parámetros de la cámara
+            raytracer::render(&mut framebuffer, &objects, &camera, &light);
+
+            // Muestra el framebuffer en la ventana
+            window
+                .update_with_buffer(framebuffer.get_buffer(), framebuffer.width, framebuffer.height)
+                .unwrap();
+
+            needs_render = false; // Reseteamos la bandera después de renderizar
+        }
+
+        // Añadimos un pequeño delay para que no consuma tanto CPU
+        std::thread::sleep(Duration::from_millis(16));
+    }
 }

@@ -16,7 +16,7 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
             let screen_y = -(2.0 * y as f32) / height + 1.0;
             let screen_x = screen_x * aspect_ratio;
 
-            let ray_direction = camera.basis_change(&Vector3::new(screen_x, screen_y, -1.0).normalize());
+            let ray_direction = camera.base_change(&Vector3::new(screen_x, screen_y, -1.0).normalize());
 
             let pixel_color = cast_ray(&camera.eye, &ray_direction, objects, light, 0);  // Pasamos 0 como profundidad inicial
 
