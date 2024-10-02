@@ -26,7 +26,7 @@ use crate::cube::Cube;
 fn main() {
     // Inicializamos el framebuffer
     let mut framebuffer = Framebuffer::new(800, 600);
-    framebuffer.set_background_color(0x000000);
+    framebuffer.set_background_color(0x404040);
     framebuffer.clear();
 
     // Inicializamos la ventana con minifb
@@ -43,7 +43,7 @@ fn main() {
     // Definimos las texturas a utilizar
     let agua_texture = Texture::load_from_file("assets/agua.jpg");
     let tierra_texture = Texture::load_from_file("assets/tierra.png");
-    let tierra2_texture = Texture::load_from_file("assets/tierra2.png");
+    let tierra_grama_texture = Texture::load_from_file("assets/tierra2.png");
     let grama_texture = Texture::load_from_file("assets/grama.png");
     let madera_texture = Texture::load_from_file("assets/madera.jpg");
     let hoja_texture = Texture::load_from_file("assets/hoja_arbol.jpg");
@@ -58,37 +58,57 @@ fn main() {
     );
 
     // Definimos la luz
-    let light = Light::new(
-        Vector3::new(3.0, 3.0, 3.0),  // Posición de la luz
-        Color::new(255, 255, 255),    // Color de la luz (blanco)
-        2.0,                          // Intensidad de la luz
+    let light1 = Light::new(
+        Vector3::new(3.0, 3.0, -3.0),
+        Color::new(255, 255, 255),    
+        3.0,                          
+        5.0,
     );
 
-    // Definimos los materiales para cada cara del cubo
-    let grama_materials = [
-        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(grama_texture.clone())), // +X
-        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_texture.clone())), // -X
-        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // +Y
-        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // -Y
-        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // +Z
-        Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra2_texture.clone())), // -Z
-    ];
+    let light2 = Light::new(
+        Vector3::new(-3.0, -3.0, 3.0), 
+        Color::new(255, 255, 255),    
+        3.0,                      
+        10.0,                           
+    );
+
+    // Definimos los materiales 
+    let tierra_grama = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_grama_texture.clone()));
+    let tierra = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_texture.clone()));
+    let grama = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(grama_texture.clone()));
+    let agua = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(agua_texture.clone()));
+    let madera = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(madera_texture.clone()));
+    let piedra = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(piedra_texture.clone()));
+    let hoja = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(hoja_texture.clone()));
+    let lava = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(lava_texture.clone()));
 
     // Creamos un cubo en la escena
-    let cube = Cube::new(Vector3::new(0.0, 0.0, -5.0), 1.0, grama_materials);
+    let mut objects: Vec<Box<dyn RayIntersect>> = vec![ 
+        Box::new(Cube {
+            center: Vector3::new(0.0, 0.0, -5.0),  // Posición del cubo
+            size: 1.0,                           // Tamaño del cubo
+            materials: [
+                tierra_grama.clone(),  // Frente
+                agua.clone(),  // Atrás
+                piedra.clone(),  // Izquierda
+                lava.clone(),  // Derecha
+                grama.clone(),         // Arriba
+                tierra.clone()         // Abajo
+            ],
+        }),
+    ];
 
     // Ejemplo de un material transparente (por ejemplo, vidrio)
     let glass = Material::new(Color::new(255, 255, 255), 125.0, [0.0, 0.5, 0.1, 0.8], 1.5, false, None); // Vidrio, 80% transparente, índice de refracción 1.5
     
-    // Reemplazamos el vector de objetos para contener únicamente el cubo
-    let mut objects: Vec<Box<dyn RayIntersect>> = vec![Box::new(cube)];
-
     let mut needs_render = true;
+
+    let lights = vec![light1, light2];
     
     // Bucle principal para manejar la entrada del teclado y actualizar la cámara
     while window.is_open() && !window.is_key_down(Key::Escape) {
         // Renderizamos la escena con los nuevos parámetros de la cámara
-        raytracer::render(&mut framebuffer, &objects, &camera, &light);
+        raytracer::render(&mut framebuffer, &objects, &camera, &lights);
 
         // Muestra el framebuffer en la ventana
         window

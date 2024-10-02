@@ -5,7 +5,7 @@ use crate::camera::Camera;
 use crate::light::Light;
 use crate::color::Color;
 
-pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, light: &Light) {
+pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], camera: &Camera, lights: &[Light]) {
     let width = framebuffer.width as f32;
     let height = framebuffer.height as f32;
     let aspect_ratio = width / height;
@@ -18,13 +18,25 @@ pub fn render(framebuffer: &mut Framebuffer, objects: &[Box<dyn RayIntersect>], 
 
             let ray_direction = camera.base_change(&Vector3::new(screen_x, screen_y, -1.0).normalize());
 
-            let pixel_color = cast_ray(&camera.eye, &ray_direction, objects, light, 0);  // Pasamos 0 como profundidad inicial
+            // Inicializamos el color del píxel como negro (0, 0, 0)
+            let mut pixel_color = Color::new(0, 0, 0);
+
+            // Sumamos el color generado por cada luz
+            for light in lights {
+                let light_contrib = cast_ray(&camera.eye, &ray_direction, objects, light, 0);  // Calculamos la contribución de la luz
+            
+                // Actualizamos cada componente del color manualmente y nos aseguramos de que no exceda 255
+                pixel_color.r = (pixel_color.r + light_contrib.r).min(255);
+                pixel_color.g = (pixel_color.g + light_contrib.g).min(255);
+                pixel_color.b = (pixel_color.b + light_contrib.b).min(255);
+            }
 
             framebuffer.set_current_color(pixel_color.to_u32());
             framebuffer.point(x, y);
         }
     }
 }
+
 
 fn cast_shadow(
     intersect: &Intersect,
