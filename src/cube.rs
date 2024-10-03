@@ -25,21 +25,27 @@ impl Cube {
         let mut v = 0.0;
 
         if (punto_encuentro.x - min.x).abs() < 0.001 {
-            u = (punto_encuentro.z - min.z) / (max.z - min.z);
-            v = (punto_encuentro.y - min.y) / (max.y - min.y);
+            // Cara derecha
+            u = (punto_encuentro.y - min.y) / (max.y - min.y);
+            v = (punto_encuentro.z - min.z) / (max.z - min.z);
         } else if (punto_encuentro.x - max.x).abs() < 0.001 {
-            u = (punto_encuentro.z - min.z) / (max.z - min.z);
-            v = (punto_encuentro.y - min.y) / (max.y - min.y);
+            // Cara izquierda
+            u = (punto_encuentro.y - min.y) / (max.y - min.y); 
+            v = (punto_encuentro.z - min.z) / (max.z - min.z);
         } else if (punto_encuentro.y - min.y).abs() < 0.001 {
+            // Cara inferior
             u = (punto_encuentro.x - min.x) / (max.x - min.x);
             v = (punto_encuentro.z - min.z) / (max.z - min.z);
         } else if (punto_encuentro.y - max.y).abs() < 0.001 {
+            // Cara superior
             u = (punto_encuentro.x - min.x) / (max.x - min.x);
             v = (punto_encuentro.z - min.z) / (max.z - min.z);
         } else if (punto_encuentro.z - min.z).abs() < 0.001 {
+            // Cara trasera
             u = (punto_encuentro.x - min.x) / (max.x - min.x);
             v = (punto_encuentro.y - min.y) / (max.y - min.y);
         } else if (punto_encuentro.z - max.z).abs() < 0.001 {
+            // Cara frontal
             u = (punto_encuentro.x - min.x) / (max.x - min.x);
             v = (punto_encuentro.y - min.y) / (max.y - min.y);
         }
