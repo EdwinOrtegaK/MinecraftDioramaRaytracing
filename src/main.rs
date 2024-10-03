@@ -55,7 +55,7 @@ fn main() {
 
     // Definimos la cámara
     let mut camera = Camera::new(
-        Vector3::new(0.0, 0.0, -10.0),  // Posición de la cámara
+        Vector3::new(0.0, 0.0, -5.0),  // Posición de la cámara
         Vector3::new(0.0, 0.0, 0.0),  // Punto que la cámara está mirando (centro de la escena)
         Vector3::new(0.0, 1.0, 0.0),  // Vector "up"
     );
@@ -79,35 +79,26 @@ fn main() {
     // Creamos un cubo en la escena
     let mut objects: Vec<Box<dyn RayIntersect>> = vec![ 
         Box::new(Cube {
-            center: Vector3::new(0.0, 0.0, -5.0),  // Posición del cubo
+            center: Vector3::new(0.0, 0.0, 0.0),  // Posición del cubo
             size: 1.0,                           // Tamaño del cubo
             materials: [
-                tierra_grama.clone(),  // Frente
-                agua.clone(),  // Atrás
+                tierra_grama.clone(),  // Derecha
                 tierra_grama.clone(),  // Izquierda
-                lava.clone(),  // Derecha
-                grama.clone(),         // Arriba
-                tierra.clone()         // Abajo
+                tierra.clone(),        // Arriba
+                grama.clone(),         // Abajo
+                tierra_grama.clone(),  // Frente
+                tierra_grama.clone()   // Atrás
             ],
         }),
-    ];
-    
-    /*
-    let mut objects: Vec<Box<dyn RayIntersect>> = vec![ 
+        /*
         Box::new(Cube {
-            center: Vector3::new(0.0, 0.0, -5.0),  // Posición del cubo
-            size: 1.0,                           // Tamaño del cubo
-            materials: [
-                material_prueba.clone(),  // Frente
-                material_prueba.clone(),  // Atrás
-                material_prueba.clone(),  // Izquierda
-                material_prueba.clone(),  // Derecha
-                material_prueba.clone(),  // Arriba
-                material_prueba.clone()   // Abajo
-            ],
+            center: Vector3::new(1.0, 0.0, 0.0),  
+            size: 1.0,                         
+            materials: [tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone()],
         }),
+        */
+        
     ];
-    */
 
     // Ejemplo de un material transparente (por ejemplo, vidrio)
     let glass = Material::new(Color::new(255, 255, 255), 125.0, [0.0, 0.5, 0.1, 0.8], 1.5, false, None); // Vidrio, 80% transparente, índice de refracción 1.5
