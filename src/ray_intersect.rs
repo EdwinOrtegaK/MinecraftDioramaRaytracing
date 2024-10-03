@@ -97,6 +97,8 @@ pub trait RayIntersect: Any {
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
+/*
+
 pub struct Sphere {
     pub center: Vector3<f32>,
     pub radius: f32,
@@ -152,3 +154,4 @@ impl RayIntersect for Sphere {
         self
     }
 }
+*/

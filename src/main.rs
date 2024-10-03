@@ -50,6 +50,9 @@ fn main() {
     let piedra_texture = Texture::load_from_file("assets/piedra.webp");
     let lava_texture = Texture::load_from_file("assets/lava.jpg");
 
+    //let textura_solida = Color::new(255, 0, 0);
+    //let material_prueba = Material::new(textura_solida, 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, false, None);
+
     // Definimos la cámara
     let mut camera = Camera::new(
         Vector3::new(0.0, 0.0, -10.0),  // Posición de la cámara
@@ -58,22 +61,13 @@ fn main() {
     );
 
     // Definimos la luz
-    let light1 = Light::new(
-        Vector3::new(3.0, 3.0, -3.0),
-        Color::new(255, 255, 255),    
-        3.0,                          
-        5.0,
-    );
-
-    let light2 = Light::new(
-        Vector3::new(-3.0, -3.0, 3.0), 
-        Color::new(255, 255, 255),    
-        3.0,                      
-        10.0,                           
-    );
+    let lights = vec![
+        Light::new(Vector3::new(100.0, 100.0, -100.0), Color::new(255, 255, 255), 2.0, 5.0), 
+        Light::new(Vector3::new(-100.0, -100.0, 100.0), Color::new(255, 255, 255), 2.0, 5.0),
+    ];
 
     // Definimos los materiales 
-    let tierra_grama = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_grama_texture.clone()));
+    let tierra_grama = Material::new(Color::new(255, 255, 255), 32.0, [0.9, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_grama_texture.clone()));
     let tierra = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(tierra_texture.clone()));
     let grama = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(grama_texture.clone()));
     let agua = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(agua_texture.clone()));
@@ -90,20 +84,35 @@ fn main() {
             materials: [
                 tierra_grama.clone(),  // Frente
                 agua.clone(),  // Atrás
-                piedra.clone(),  // Izquierda
+                tierra_grama.clone(),  // Izquierda
                 lava.clone(),  // Derecha
                 grama.clone(),         // Arriba
                 tierra.clone()         // Abajo
             ],
         }),
     ];
+    
+    /*
+    let mut objects: Vec<Box<dyn RayIntersect>> = vec![ 
+        Box::new(Cube {
+            center: Vector3::new(0.0, 0.0, -5.0),  // Posición del cubo
+            size: 1.0,                           // Tamaño del cubo
+            materials: [
+                material_prueba.clone(),  // Frente
+                material_prueba.clone(),  // Atrás
+                material_prueba.clone(),  // Izquierda
+                material_prueba.clone(),  // Derecha
+                material_prueba.clone(),  // Arriba
+                material_prueba.clone()   // Abajo
+            ],
+        }),
+    ];
+    */
 
     // Ejemplo de un material transparente (por ejemplo, vidrio)
     let glass = Material::new(Color::new(255, 255, 255), 125.0, [0.0, 0.5, 0.1, 0.8], 1.5, false, None); // Vidrio, 80% transparente, índice de refracción 1.5
     
     let mut needs_render = true;
-
-    let lights = vec![light1, light2];
     
     // Bucle principal para manejar la entrada del teclado y actualizar la cámara
     while window.is_open() && !window.is_key_down(Key::Escape) {
