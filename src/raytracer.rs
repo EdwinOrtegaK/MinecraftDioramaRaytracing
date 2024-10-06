@@ -57,7 +57,7 @@ fn cast_shadow(
             let distance_to_light = (light.position - intersect.point).magnitude();
             let shadow_distance = (shadow_intersect.point - shadow_ray_origin).magnitude();
             
-            shadow_intensity = (1.0 - (shadow_distance / distance_to_light)).max(0.0);
+            shadow_intensity = (0.6 - (shadow_distance / distance_to_light)).max(0.0);
             break;
         }
     }

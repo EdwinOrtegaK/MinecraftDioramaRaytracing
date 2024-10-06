@@ -30,7 +30,7 @@ fn main() {
 
     // Initialize framebuffers
     let mut framebuffer_high = Framebuffer::new(width, height);
-    let mut framebuffer_low = Framebuffer::new(width / 2, height / 2);
+    let mut framebuffer_low = Framebuffer::new(width / 3, height / 3);
 
     // Inicializamos la ventana con minifb
     let mut window = Window::new(
@@ -51,14 +51,14 @@ fn main() {
     let madera_texture = Texture::load_from_file("assets/madera.jpg");
     let hoja_texture = Texture::load_from_file("assets/hoja_arbol.jpg");
     let piedra_texture = Texture::load_from_file("assets/piedra.png");
-    let lava_texture = Texture::load_from_file("assets/lava.png");
+    let arena_texture = Texture::load_from_file("assets/arena.png");
 
     //let textura_solida = Color::new(255, 0, 0);
     //let material_prueba = Material::new(textura_solida, 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, false, None);
 
     // Definimos la cámara
     let mut camera = Camera::new(
-        Vector3::new(0.0, 0.0, -10.0),  // Posición de la cámara
+        Vector3::new(0.0, 5.0, -10.0),  // Posición de la cámara
         Vector3::new(0.0, 0.0, 0.0),  // Punto que la cámara está mirando (centro de la escena)
         Vector3::new(0.0, 1.0, 0.0),  // Vector "up"
     );
@@ -77,30 +77,679 @@ fn main() {
     let madera = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(madera_texture.clone()));
     let piedra = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(piedra_texture.clone()));
     let hoja = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(hoja_texture.clone()));
-    let lava = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(lava_texture.clone()));
+    let arena = Material::new(Color::new(255, 255, 255), 32.0, [1.0, 0.1, 0.0, 0.0], 1.0, true, Some(arena_texture.clone()));
 
-    // Creamos un cubo en la escena
-    let mut objects: Vec<Box<dyn RayIntersect>> = vec![ 
-        Box::new(Cube {
-            center: Vector3::new(0.0, 0.0, 0.0),  // Posición del cubo
-            size: 1.0,                           // Tamaño del cubo
-            materials: [
-                tierra_grama.clone(),  // Derecha
-                tierra_grama.clone(),  // Izquierda
-                tierra.clone(),        // Arriba
-                grama.clone(),         // Abajo
-                tierra_grama.clone(),  // Frente
-                tierra_grama.clone()   // Atrás
-            ],
-        }),
-        /*
-        Box::new(Cube {
-            center: Vector3::new(1.0, 0.0, 0.0),  
-            size: 1.0,                         
-            materials: [tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone()],
-        }),
-        */
-    ];
+    // Creamos los cubos en la escena
+    let mut objects: Vec<Box<dyn RayIntersect>> = Vec::new();
+
+    // Base de 8x8 cubos
+    let grid_size = 8;
+    let cube_size = 1.0;
+    
+    // Recorrer en ambos ejes X y Z para crear una cuadrícula
+    for z in 0..grid_size {
+        for x in 0..grid_size {
+            let x_pos = x as f32 * cube_size - (grid_size as f32 / 2.0) * cube_size;
+            let z_pos = z as f32 * cube_size - (grid_size as f32 / 2.0) * cube_size;
+            
+            objects.push(Box::new(Cube {
+                center: Vector3::new(x_pos, 0.0, z_pos),  // Posición del cubo
+                size: cube_size,                         // Tamaño del cubo
+                materials: [
+                    tierra.clone(),  // Derecha
+                    tierra.clone(),  // Izquierda
+                    tierra.clone(),  // Abajo
+                    tierra.clone(),  // Arriba
+                    tierra.clone(),  // Frente
+                    tierra.clone(),  // Atrás
+                ],
+            }));
+        }
+    }
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(), arena.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(), agua.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(0.0, 1.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            tierra.clone(), tierra.clone(), tierra.clone(), grama.clone(), tierra.clone(), tierra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 2.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 2.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 2.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 2.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 2.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 2.0, -4.0),  
+        size: 1.0,                          
+        materials: [
+            tierra_grama.clone(), tierra_grama.clone(), tierra.clone(), grama.clone(), tierra_grama.clone(), tierra_grama.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-1.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 1.0, 0.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 1.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 1.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-2.0, 2.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 2.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 2.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 2.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 2.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 2.0, 1.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-3.0, 3.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 3.0, 3.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(-4.0, 3.0, 2.0),  
+        size: 1.0,                          
+        materials: [
+            piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(), piedra.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 2.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            madera.clone(), madera.clone(), madera.clone(), madera.clone(), madera.clone(), madera.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 3.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            madera.clone(), madera.clone(), madera.clone(), madera.clone(), madera.clone(), madera.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 6.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 5.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 5.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 5.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 5.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 4.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(2.0, 4.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 4.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 4.0, -2.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 4.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 4.0, -1.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(1.0, 4.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
+    objects.push(Box::new(Cube {
+        center: Vector3::new(3.0, 4.0, -3.0),  
+        size: 1.0,                          
+        materials: [
+            hoja.clone(), hoja.clone(), hoja.clone(), hoja.clone(),hoja.clone(), hoja.clone(),
+        ],
+    }));
 
     // Ejemplo de un material transparente (por ejemplo, vidrio)
     let glass = Material::new(Color::new(255, 255, 255), 125.0, [0.0, 0.5, 0.1, 0.8], 1.5, false, None); // Vidrio, 80% transparente, índice de refracción 1.5
@@ -174,7 +823,7 @@ fn main() {
         }
 
         // Añadimos un pequeño delay para que no consuma tanto CPU
-        //std::thread::sleep(Duration::from_millis(16));
+        std::thread::sleep(Duration::from_millis(16));
     }
 }
 
