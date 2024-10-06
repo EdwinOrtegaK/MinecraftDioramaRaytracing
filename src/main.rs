@@ -18,6 +18,7 @@ use std::time::Duration;
 use std::io::{self, Write};
 use minifb::{Key, Window, WindowOptions};
 use std::path::Path;
+use std::time::Instant;
 use crate::raytracer::render;
 use crate::texture::Texture;
 use crate::ray_intersect::RayIntersect;
@@ -756,6 +757,7 @@ fn main() {
     
     let mut needs_render = true;
     let mut camera_moved = false;
+    let animation_start = Instant::now();
     
     // Bucle principal para manejar la entrada del teclado y actualizar la cámara
     while window.is_open() && !window.is_key_down(Key::Escape) {
@@ -809,16 +811,17 @@ fn main() {
             window.update_with_buffer(framebuffer_high.get_buffer(), framebuffer_high.width, framebuffer_high.height).unwrap();
         }    
 
-        // Animar cubos u otros objetos específicos usando downcasting
-        for object in objects.iter_mut() {
-            // Usamos downcasting dinámico para verificar si el objeto es un Cube
+        // Obtener el tiempo transcurrido para la animación
+        let elapsed_time = animation_start.elapsed().as_secs_f32();
+
+        // Animar los cubos de agua
+        for (i, object) in objects.iter_mut().enumerate() {
             if let Some(cube) = object.as_any_mut().downcast_mut::<Cube>() {
-                // Aquí puedes animar o modificar el cubo
-                // Por ejemplo, podemos moverlo un poco en el eje Y para hacer que flote
-                // cube.center.y += 0.01; Movimiento hacia arriba
-            
-                // O puedes aplicar alguna lógica de animación más compleja
-                // cube.size *= 1.01;  // Incrementar el tamaño del cubo ligeramente
+                // Compara si el cubo tiene textura y si esa textura es la de agua
+                if cube.materials.iter().any(|m| m.has_texture && m.texture.as_ref().map_or(false, |t| t == &agua_texture)) {
+                    let desfase = i as f32 * 0.2;
+                    cube.center.x += (elapsed_time * 1.0 + desfase).sin() * 0.1;
+                }
             }
         }
 

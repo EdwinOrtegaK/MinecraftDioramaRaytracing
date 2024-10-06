@@ -1,7 +1,7 @@
 use image::{GenericImageView, DynamicImage};
 use crate::color::Color;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Texture {
     pub data: Vec<Color>,
     pub width: usize,
